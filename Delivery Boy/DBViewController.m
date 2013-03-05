@@ -8,7 +8,7 @@
 
 #import "DBViewController.h"
 #import "XMLReader.h"
-
+#import "UtilitiesGeo.h"
 ///////////////////////////
 
 @interface DestinationAnnotation : NSObject <MKAnnotation>
@@ -28,6 +28,8 @@
 
 @property (retain, nonatomic) MQRoute *route;
 @property (retain, nonatomic) IBOutlet MKMapView *mapView;
+@property (assign, nonatomic) CLLocationCoordinate2D destCoords;
+@property (assign, nonatomic) NSUInteger currentTargetWaypoint;
 @end
 
 @implementation DBViewController
@@ -52,17 +54,17 @@
     
     //figure out the lat/long coords
     CGPoint destPoint = [gestureRecognizer locationInView:gestureRecognizer.view];
-    CLLocationCoordinate2D destCoords = [[self mapView] convertPoint:destPoint toCoordinateFromView:[self mapView]];
-    NSLog(@"User tapped on %f %f", destCoords.latitude, destCoords.longitude);
+    self.destCoords = [[self mapView] convertPoint:destPoint toCoordinateFromView:[self mapView]];
+    NSLog(@"User tapped on %f %f", self.destCoords.latitude, self.destCoords.longitude);
     
     // Create an annotation and put it on the map
     DestinationAnnotation *dest = [[DestinationAnnotation alloc] init];
-    dest.coordinate = destCoords;
+    dest.coordinate = self.destCoords;
     [[self mapView] addAnnotation:dest];
     
     // From the user location, get the route to the destination
     CLLocationCoordinate2D userLocation = [[self mapView] userLocation].coordinate;
-    [self.route getRouteWithStartCoordinate:userLocation endCoordinate:destCoords];
+    [self.route getRouteWithStartCoordinate:userLocation endCoordinate:self.destCoords];
 }
 
 - (void)viewDidLoad
@@ -79,6 +81,24 @@
     self.route.routeType = MQRouteTypePedestrian;
     
 }
+
+- (void)zoomToAllRelevantInfo {
+    MKMapPoint userPoint = MKMapPointForCoordinate(self.mapView.userLocation.location.coordinate);
+    MKMapRect rect = MKMapRectMake(userPoint.x, userPoint.y, 1000, 1000);
+    
+    for(id<MKAnnotation> a in self.mapView.annotations) {
+        MKMapPoint annotationPoint = MKMapPointForCoordinate(a.coordinate);
+        MKMapRect annotationRect = MKMapRectMake(annotationPoint.x, userPoint.y, 0, 0);
+        
+        rect = MKMapRectUnion(annotationRect, rect);
+    }
+    
+    [self.mapView setVisibleMapRect:rect
+                        edgePadding:UIEdgeInsetsMake(100, 100, 100, 100)
+                           animated:YES];
+
+}
+
 -(void)routeLoadFinished
 {
     // get the raw xml passed back from the server:
@@ -89,23 +109,18 @@
         NSLog(@"error is %@", [error localizedDescription]);
     }
     NSArray *points = [[[[[dictionary objectForKey:@"response"] objectForKey:@"route"] objectForKey:@"shape"] objectForKey:@"shapePoints"] objectForKey:@"latLng"];
-    NSLog(@"array of dots from xml is %@", points);
     
-    
-    CLLocationCoordinate2D user = self.mapView.userLocation.location.coordinate;
-    MKMapRect unionRect = MKMapRectMake(user.latitude, user.longitude, 1, 1);
     CLLocationCoordinate2D coordinates[points.count];
     for (NSInteger index = 0; index < points.count; index++) {
         CLLocationCoordinate2D coord;
         coord.latitude = [[[points objectAtIndex:index] objectForKey:@"lat"] floatValue];
         coord.longitude = [[[points objectAtIndex:index] objectForKey:@"lng"] floatValue];
+        NSLog(@"the next point is %@", [points objectAtIndex:index]);
         coordinates[index] = coord;
-        
-        unionRect = MKMapRectUnion(MKMapRectMake(coord.latitude, coord.longitude, 1, 1), unionRect);
     }
+    
     MKPolyline *polyLine = [MKPolyline polylineWithCoordinates:coordinates count:points.count];
     [self.mapView addOverlay:polyLine];
-    // [self.mapView setVisibleMapRect:unionRect];
     
     // do something with all the maneuvers
     for ( MQManeuver *maneuver in self.route.maneuvers )
@@ -120,14 +135,18 @@
     [super viewDidUnload];
 }
 
--(MKAnnotationView*)mapView:(MKMapView *)aMapView viewForAnnotation:(id<MQAnnotation>)annotation {
-    
-    MKAnnotationView *pinView = nil;
-    
+-(MKAnnotationView*)mapView:(MKMapView *)aMapView viewForAnnotation:(id<MKAnnotation>)annotation {
+
     //Let the MapView create the view for the user location. Otherwise, it can be overridden to support custom user location views.
-    if ([annotation isKindOfClass:[MQUserLocation class]])
+    if ([annotation isKindOfClass:[MKUserLocation class]])
         return nil;
     
+    NSString *reuse = @"pin";
+    [aMapView dequeueReusableAnnotationViewWithIdentifier:reuse];
+    MKPinAnnotationView *pinView = [[MKPinAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:reuse];
+    [pinView setAnnotation:annotation];
+    pinView.animatesDrop = YES;
+    pinView.pinColor = MKPinAnnotationColorGreen;
     return pinView;
 }
 
@@ -141,15 +160,35 @@
     NSLog(@"MapDelegate notified of STARTING to track user");
 }
 
-
 - (void)mapViewDidStopLocatingUser:(MQMapView *)mapView {
     NSLog(@"MapDelegate notified of STOPPING tracking of user");
 }
 
 - (void)mapView:(MKMapView *)mapView didUpdateUserLocation:(MKUserLocation *)userLocation {
     accuracyInMeters.text = [NSString stringWithFormat:@"%f m",userLocation.location.horizontalAccuracy];
+    [self zoomToAllRelevantInfo];
     
-    self.mapView.region = MKCoordinateRegionMakeWithDistance(userLocation.coordinate, MAX(userLocation.location.horizontalAccuracy, 1000), MAX(userLocation.location.horizontalAccuracy, 1000));
+    if ([self.mapView.annotations count] == 1) {
+        return;
+    }
+    DestinationAnnotation *annotation = [self.mapView.annotations objectAtIndex:self.currentTargetWaypoint];
+    // Determine if we are at the next point
+    
+    MKMapPoint point1 = MKMapPointForCoordinate(userLocation.coordinate);
+    
+    MKMapPoint point2 = MKMapPointForCoordinate(annotation.coordinate);
+    
+    CLLocationDistance distance = MKMetersBetweenMapPoints(point1,point2);
+    
+    if(distance < userLocation.location.horizontalAccuracy) {
+        NSLog(@"Time to head to the next location");
+        self.currentTargetWaypoint++;
+    }
+
+double heading = headingInDegrees(userLocation.location.coordinate.latitude, userLocation.location.coordinate.longitude,
+                                  annotation.coordinate.latitude, annotation.coordinate.longitude);
+NSLog(@"heading is %f distance is %f", heading, distance);
+
 }
 
 - (void)mapView:(MKMapView *)mapView didUpdateHeading:(CLHeading*)newHeading {

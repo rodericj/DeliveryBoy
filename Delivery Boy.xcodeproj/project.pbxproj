@@ -31,6 +31,8 @@
 		9E55296C16E5C34900E98588 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E55296B16E5C34900E98588 /* QuartzCore.framework */; };
 		9E55297016E5C49400E98588 /* MQMapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E55296F16E5C49400E98588 /* MQMapKit.framework */; };
 		9E55297216E5C4A500E98588 /* libxml2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E55297116E5C4A500E98588 /* libxml2.dylib */; };
+		9E55297516E5E55400E98588 /* UtilitiesGeo.c in Sources */ = {isa = PBXBuildFile; fileRef = 9E55297316E5E55400E98588 /* UtilitiesGeo.c */; };
+		9E55297616E5E55400E98588 /* UtilitiesGeo.c in Sources */ = {isa = PBXBuildFile; fileRef = 9E55297316E5E55400E98588 /* UtilitiesGeo.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +77,8 @@
 		9E55296D16E5C3AB00E98588 /* libsqlite3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = usr/lib/libsqlite3.dylib; sourceTree = SDKROOT; };
 		9E55296F16E5C49400E98588 /* MQMapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MQMapKit.framework; path = ../../Downloads/MQMapKit_1.1/MQMapKit.framework; sourceTree = "<group>"; };
 		9E55297116E5C4A500E98588 /* libxml2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libxml2.dylib; path = usr/lib/libxml2.dylib; sourceTree = SDKROOT; };
+		9E55297316E5E55400E98588 /* UtilitiesGeo.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = UtilitiesGeo.c; sourceTree = "<group>"; };
+		9E55297416E5E55400E98588 /* UtilitiesGeo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UtilitiesGeo.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -159,6 +163,8 @@
 		9E40F44D16E48A3700AA12AE /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				9E55297316E5E55400E98588 /* UtilitiesGeo.c */,
+				9E55297416E5E55400E98588 /* UtilitiesGeo.h */,
 				9E40F48916E48BC600AA12AE /* XMLReader.h */,
 				9E40F48A16E48BC600AA12AE /* XMLReader.m */,
 				9E40F44E16E48A3700AA12AE /* Delivery Boy-Info.plist */,
@@ -307,6 +313,7 @@
 				9E40F45716E48A3700AA12AE /* DBAppDelegate.m in Sources */,
 				9E40F46616E48A3700AA12AE /* DBViewController.m in Sources */,
 				9E40F48B16E48BC600AA12AE /* XMLReader.m in Sources */,
+				9E55297516E5E55400E98588 /* UtilitiesGeo.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -316,6 +323,7 @@
 			files = (
 				9E40F47B16E48A3800AA12AE /* Delivery_BoyTests.m in Sources */,
 				9E40F48C16E48BC600AA12AE /* XMLReader.m in Sources */,
+				9E55297616E5E55400E98588 /* UtilitiesGeo.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
