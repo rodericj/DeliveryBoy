@@ -9,6 +9,7 @@
 #import "DBViewController.h"
 #import "XMLReader.h"
 #import "UtilitiesGeo.h"
+
 ///////////////////////////
 
 @interface DestinationAnnotation : NSObject <MKAnnotation>
@@ -30,6 +31,7 @@
 @property (retain, nonatomic) IBOutlet MKMapView *mapView;
 @property (assign, nonatomic) CLLocationCoordinate2D destCoords;
 @property (assign, nonatomic) NSUInteger currentTargetWaypoint;
+@property (retain, nonatomic) NSArray *waypoints;
 @end
 
 @implementation DBViewController
@@ -38,7 +40,6 @@
 {
     [super didReceiveMemoryWarning];
 }
-
 
 #pragma mark - View lifecycle
 - (IBAction)tappedMap:(UIGestureRecognizer *)gestureRecognizer {
@@ -108,18 +109,19 @@
     if (error) {
         NSLog(@"error is %@", [error localizedDescription]);
     }
-    NSArray *points = [[[[[dictionary objectForKey:@"response"] objectForKey:@"route"] objectForKey:@"shape"] objectForKey:@"shapePoints"] objectForKey:@"latLng"];
+    self.waypoints = [[[[[dictionary objectForKey:@"response"] objectForKey:@"route"] objectForKey:@"shape"] objectForKey:@"shapePoints"] objectForKey:@"latLng"];
     
-    CLLocationCoordinate2D coordinates[points.count];
-    for (NSInteger index = 0; index < points.count; index++) {
+    CLLocationCoordinate2D coordinates[self.waypoints.count];
+    for (NSInteger index = 0; index < self.waypoints.count; index++) {
         CLLocationCoordinate2D coord;
-        coord.latitude = [[[points objectAtIndex:index] objectForKey:@"lat"] floatValue];
-        coord.longitude = [[[points objectAtIndex:index] objectForKey:@"lng"] floatValue];
-        NSLog(@"the next point is %@", [points objectAtIndex:index]);
+        NSDictionary *currentPoint = [self.waypoints objectAtIndex:index];
+        coord.latitude = [[currentPoint objectForKey:@"lat"] floatValue];
+        coord.longitude = [[currentPoint objectForKey:@"lng"] floatValue];
+        NSLog(@"the next point is %@", currentPoint);
         coordinates[index] = coord;
     }
     
-    MKPolyline *polyLine = [MKPolyline polylineWithCoordinates:coordinates count:points.count];
+    MKPolyline *polyLine = [MKPolyline polylineWithCoordinates:coordinates count:self.waypoints.count];
     [self.mapView addOverlay:polyLine];
     
     // do something with all the maneuvers
@@ -171,12 +173,22 @@
     if ([self.mapView.annotations count] == 1) {
         return;
     }
-    DestinationAnnotation *annotation = [self.mapView.annotations objectAtIndex:self.currentTargetWaypoint];
+    
+
+    if (self.currentTargetWaypoint >= self.waypoints.count) {
+        return;
+    }
+    
+    CLLocationCoordinate2D coord;
+    NSDictionary *currentPoint = [self.waypoints objectAtIndex:self.currentTargetWaypoint];
+    coord.latitude = [[currentPoint objectForKey:@"lat"] floatValue];
+    coord.longitude = [[currentPoint objectForKey:@"lng"] floatValue];
+
     // Determine if we are at the next point
     
     MKMapPoint point1 = MKMapPointForCoordinate(userLocation.coordinate);
     
-    MKMapPoint point2 = MKMapPointForCoordinate(annotation.coordinate);
+    MKMapPoint point2 = MKMapPointForCoordinate(coord);
     
     CLLocationDistance distance = MKMetersBetweenMapPoints(point1,point2);
     
@@ -185,9 +197,16 @@
         self.currentTargetWaypoint++;
     }
 
-double heading = headingInDegrees(userLocation.location.coordinate.latitude, userLocation.location.coordinate.longitude,
-                                  annotation.coordinate.latitude, annotation.coordinate.longitude);
-NSLog(@"heading is %f distance is %f", heading, distance);
+double heading = headingInDegrees(userLocation.location.coordinate.latitude,
+                                  userLocation.location.coordinate.longitude,
+                                  coord.latitude,
+                                  coord.longitude);
+    if (heading < 0) {
+        heading = 360 + heading;
+    }
+    NSLog(@"Expected heading: %f : Actual heading %f", heading, userLocation.location.course);
+    NSLog(@"heading is %f, distance is %f, speed is %f", heading, distance, userLocation.location.speed);
+    NSLog(@"ETA is %f", distance / userLocation.location.speed);
 
 }
 
