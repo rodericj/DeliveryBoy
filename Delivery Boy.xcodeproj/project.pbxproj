@@ -114,7 +114,6 @@
 			isa = PBXGroup;
 			children = (
 				9E55297116E5C4A500E98588 /* libxml2.dylib */,
-				9E55296F16E5C49400E98588 /* MQMapKit.framework */,
 				9E55296D16E5C3AB00E98588 /* libsqlite3.dylib */,
 				9E40F44C16E48A3700AA12AE /* Delivery Boy */,
 				9E40F47316E48A3800AA12AE /* Delivery BoyTests */,
@@ -135,6 +134,7 @@
 		9E40F44516E48A3700AA12AE /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				9E55296F16E5C49400E98588 /* MQMapKit.framework */,
 				9E40F44A16E48A3700AA12AE /* CoreGraphics.framework */,
 				9E55296916E5C32C00E98588 /* CoreLocation.framework */,
 				9E40F44816E48A3700AA12AE /* Foundation.framework */,
